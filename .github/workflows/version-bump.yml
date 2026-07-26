@@ -43,14 +43,32 @@ jobs:
       - name: Bump project version
         env:
           EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
           INPUT_BUMP: ${{ inputs.bump }}
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
-          # For automatic runs on push to master we always do patch bump.
+          # For automatic runs on push to master we infer bump type from commit messages.
           if [[ "${EVENT_NAME}" == "push" ]]; then
-            uv version --bump patch
+            if [[ "${BEFORE_SHA}" == "0000000000000000000000000000000000000000" ]]; then
+              subjects=$(git log --format=%s -n 50)
+              bodies=$(git log --format=%b -n 50)
+            else
+              subjects=$(git log --format=%s "${BEFORE_SHA}..${CURRENT_SHA}")
+              bodies=$(git log --format=%b "${BEFORE_SHA}..${CURRENT_SHA}")
+            fi
+
+            bump_type="patch"
+            if echo "${subjects}" | grep -Eiq '^[a-z]+(\([^)]+\))?!:' || echo "${bodies}" | grep -Eiq 'BREAKING CHANGE'; then
+              bump_type="major"
+            elif echo "${subjects}" | grep -Eiq '^feat(\([^)]+\))?:'; then
+              bump_type="minor"
+            fi
+
+            echo "Detected bump type: ${bump_type}"
+            uv version --bump "${bump_type}"
           elif [[ -n "${INPUT_VERSION:-}" ]]; then
             uv version "$INPUT_VERSION"
           else
