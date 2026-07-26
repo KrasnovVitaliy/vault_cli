@@ -1,6 +1,6 @@
 [project]
 name = "vault-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "CLI for listing and managing HashiCorp Vault KV v2 secrets"
 readme = "README.md"
 requires-python = ">=3.14"
