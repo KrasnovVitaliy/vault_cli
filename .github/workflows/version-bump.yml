@@ -1,6 +1,9 @@
 name: Version Bump
 
 on:
+  push:
+    branches:
+      - master
   workflow_dispatch:
     inputs:
       bump:
@@ -22,6 +25,7 @@ permissions:
 
 jobs:
   bump:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
 
     steps:
@@ -38,12 +42,16 @@ jobs:
 
       - name: Bump project version
         env:
+          EVENT_NAME: ${{ github.event_name }}
           INPUT_BUMP: ${{ inputs.bump }}
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
-          if [[ -n "${INPUT_VERSION:-}" ]]; then
+          # For automatic runs on push to master we always do patch bump.
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            uv version --bump patch
+          elif [[ -n "${INPUT_VERSION:-}" ]]; then
             uv version "$INPUT_VERSION"
           else
             uv version --bump "${INPUT_BUMP:-patch}"
