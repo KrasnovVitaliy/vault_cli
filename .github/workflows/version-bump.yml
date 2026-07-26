@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -55,9 +57,13 @@ jobs:
             if [[ "${BEFORE_SHA}" == "0000000000000000000000000000000000000000" ]]; then
               subjects=$(git log --format=%s -n 50)
               bodies=$(git log --format=%b -n 50)
-            else
+            elif git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
               subjects=$(git log --format=%s "${BEFORE_SHA}..${CURRENT_SHA}")
               bodies=$(git log --format=%b "${BEFORE_SHA}..${CURRENT_SHA}")
+            else
+              echo "Warning: before SHA is not available locally, fallback to recent commits"
+              subjects=$(git log --format=%s -n 50)
+              bodies=$(git log --format=%b -n 50)
             fi
 
             bump_type="patch"
